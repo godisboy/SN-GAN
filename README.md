@@ -4,7 +4,7 @@ pyTorch implementation of Spectral Normalization for Generative Adversarial Netw
 --------------------
 [SDGAN]:(https://arxiv.org/abs/1705.07904)
 
-1. Result of SN-GAN on MS-Celeba_1M
+1. Result of SN-GAN on CIFAR10 dataset
 
 * Generated
 
