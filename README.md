@@ -8,7 +8,7 @@ pyTorch implementation of Spectral Normalization for Generative Adversarial Netw
 
 * Generated
 
-![Generated](log/fake_samples_epoch_131.png)
+![Generated](log/fake_samples_epoch_199.png)
 
 * Real
 
