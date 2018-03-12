@@ -10,7 +10,8 @@ import torch.backends.cudnn as cudnn
 
 import random
 import argparse
-from models.models import _netG, _netD
+from models.snres_generator import SNResGenerator
+from models.snres_discriminator import SNResDiscriminator
 
 parser = argparse.ArgumentParser(description='train SNDCGAN model')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -18,15 +19,15 @@ parser.add_argument('--gpu_ids', default=[0,1,2,3], help='gpu ids: e.g. 0,1,2, 0
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--n_dis', type=int, default=1, help='discriminator critic iters')
 parser.add_argument('--nz', type=int, default=128, help='dimention of lantent noise')
-parser.add_argument('--batchsize', type=int, default=64, help='training batch size')
+parser.add_argument('--batchsize', type=int, default=32, help='training batch size')
 
 opt = parser.parse_args()
 print(opt)
 
 dataset = datasets.ImageFolder(root='/home/chao/zero/datasets/cfp-dataset/Data/Images',
                            transform=transforms.Compose([
-                               transforms.Scale(32),
-                               transforms.CenterCrop(32),
+                               transforms.Scale(64),
+                               transforms.CenterCrop(64),
                                transforms.ToTensor(),
                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ])
@@ -65,16 +66,16 @@ def weight_filler(m):
 n_dis = opt.n_dis
 nz = opt.nz
 
-G = _netG(nz, 3, 64)
-SND = _netD(3, 64)
+G = SNResGenerator(64, nz, 4)
+SND = SNResDiscriminator(64, 4)
 print(G)
 print(SND)
 G.apply(weight_filler)
 SND.apply(weight_filler)
 
-input = torch.FloatTensor(opt.batchsize, 3, 32, 32)
-noise = torch.FloatTensor(opt.batchsize, nz, 1, 1)
-fixed_noise = torch.FloatTensor(opt.batchsize, nz, 1, 1).normal_(0, 1)
+input = torch.FloatTensor(opt.batchsize, 3, 64, 64)
+noise = torch.FloatTensor(opt.batchsize, nz)
+fixed_noise = torch.FloatTensor(opt.batchsize, nz).normal_(0, 1)
 label = torch.FloatTensor(opt.batchsize)
 real_label = 1
 fake_label = 0

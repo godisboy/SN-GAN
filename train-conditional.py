@@ -6,12 +6,11 @@ from torchvision import datasets, transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
 import torch.utils.data
-from torch.nn.modules import conv
-from torch.nn.modules.utils import _pair, _triple
 import torch.backends.cudnn as cudnn
 
 import random
 import argparse
+from models.models import SNConv2d
 import os
 from PIL import Image
 import numpy as np
@@ -26,7 +25,7 @@ parser.add_argument('--label_num', type=int, default=200, help='number of labels
 opt = parser.parse_args()
 print(opt)
 
-dataset = datasets.ImageFolder(root='/media/scw4750/25a01ed5-a903-4298-87f2-a5836dcb6888/AIwalker/dataset/CUB200_object',
+dataset = datasets.ImageFolder(root='/home/chao/Downloads/AwA2-data/train-tiny',
                            transform=transforms.Compose([
                                transforms.Scale(64),
                                transforms.CenterCrop(64),
@@ -45,46 +44,9 @@ torch.manual_seed(opt.manualSeed)
 
 if opt.cuda:
     torch.cuda.manual_seed_all(opt.manualSeed)
-    torch.cuda.set_device(opt.gpu_ids[3])
+    torch.cuda.set_device(opt.gpu_ids[0])
 
 cudnn.benchmark = True
-
-def _l2normalize(v, eps=1e-12):
-    return v / (((v**2).sum())**0.5 + eps)
-
-def max_singular_value(W, u=None, Ip=1):
-    """
-    power iteration for weight parameter
-    """
-    #xp = W.data
-    if u is None:
-        u = torch.FloatTensor(1, W.size(0)).normal_(0, 1).cuda()
-    _u = u
-    for _ in range(Ip):
-        #print(_u.size(), W.size())
-        _v = _l2normalize(torch.matmul(_u, W.data), eps=1e-12)
-        _u = _l2normalize(torch.matmul(_v, torch.transpose(W.data, 0, 1)), eps=1e-12)
-    sigma = torch.matmul(torch.matmul(_v, torch.transpose(W.data, 0, 1)), torch.transpose(_u, 0, 1))
-    return sigma, _v
-
-class SNConv2d(conv._ConvNd):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True):
-        kernel_size = _pair(kernel_size)
-        stride = _pair(stride)
-        padding = _pair(padding)
-        dilation = _pair(dilation)
-        super(SNConv2d, self).__init__(
-            in_channels, out_channels, kernel_size, stride, padding, dilation,
-            False, _pair(0), groups, bias)
-
-    def forward(self, input):
-        w_mat = self.weight.view(self.weight.size(0), -1)
-        sigma, _ = max_singular_value(w_mat)
-        #print(sigma.size())
-        self.weight.data = self.weight.data / sigma
-        #print(self.weight.data)
-        return F.conv2d(input, self.weight, self.bias, self.stride,
-                        self.padding, self.dilation, self.groups)
 
 def weight_filler(m):
     classname = m.__class__.__name__
@@ -104,7 +66,7 @@ class _netG(nn.Module):
             nn.ReLU(True)
         )
         self.convT2 = nn.Sequential(
-            nn.ConvTranspose2d(200, ngf * 4, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(10, ngf * 4, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True)
         )
@@ -140,24 +102,27 @@ class _netD(nn.Module):
     def __init__(self, nc, ndf):
         super(_netD, self).__init__()
 
-        self.conv1_1 = SNConv2d(nc, ndf/2, 4, 2, 1, bias=False)
-        self.conv1_2 = SNConv2d(200, ndf/2, 4, 2, 1, bias=False)
+        self.conv1_1 = SNConv2d(nc, ndf/2, 3, 1, 1, bias=False)
+        self.conv1_2 = SNConv2d(10, ndf/2, 3, 1, 1, bias=False)
         self.lrelu = nn.LeakyReLU(0.2, inplace=True)
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
-            #SNConv2d(nc, ndf, 4, 2, 1, bias=False),
-            #nn.LeakyReLU(0.2, inplace=True),
+            SNConv2d(ndf, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
-            SNConv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            #nn.BatchNorm2d(ndf * 2),
+            SNConv2d(ndf, ndf * 2, 3, 1, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            SNConv2d(ndf *2 , ndf * 2, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*2) x 16 x 16
-            SNConv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            #nn.BatchNorm2d(ndf * 4),
+            SNConv2d(ndf * 2, ndf * 4, 3, 1, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            SNConv2d(ndf * 4, ndf * 4, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*4) x 8 x 8
-            SNConv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            #nn.BatchNorm2d(ndf * 8),
+            SNConv2d(ndf * 4, ndf * 8, 3, 1, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            SNConv2d(ndf * 8, ndf * 8, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
             SNConv2d(ndf * 8, 1, 4, 1, 0, bias=False),
@@ -188,7 +153,7 @@ real_label = 1
 fake_label = 0
 
 #fixed label
-fix_label = torch.FloatTensor(opt.batchSize)
+fix_label = torch.FloatTensor(opt.batchSize, 1)
 
 for i in range(0, 4):
     #label_y = np.random.randint(1,200)
@@ -197,10 +162,10 @@ for i in range(0, 4):
     #fix_label[i] = np.random.randint(1,200);
 
 fix = torch.LongTensor(32,1).copy_(fix_label)
-fix_onehot = torch.FloatTensor(opt.batchSize, 200)
+fix_onehot = torch.FloatTensor(opt.batchSize, 10)
 fix_onehot.zero_()
 fix_onehot.scatter_(1, fix, 1)
-fix_onehot = fix_onehot.view(-1, 200, 1, 1)
+fix_onehot = fix_onehot.view(-1, 10, 1, 1)
 
 fixed_noise = torch.FloatTensor(32, nz, 1, 1).normal_(0, 1)
 #fixed_input = torch.cat([fixed_noise, fix_onehot],1)
@@ -208,8 +173,8 @@ fixed_noise, fix_onehot = Variable(fixed_noise), Variable(fix_onehot)
 
 criterion = nn.BCELoss()
 
-fill = torch.zeros([200, 200, 64, 64])
-for i in range(200):
+fill = torch.zeros([10, 10, 64, 64])
+for i in range(10):
     fill[i, i, :, :] = 1
 
 if opt.cuda:
@@ -222,7 +187,7 @@ if opt.cuda:
 optimizerG = optim.Adam(G.parameters(), lr=0.0002, betas=(0.5, 0.999))
 optimizerSND = optim.Adam(SND.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
-for epoch in range(200):
+for epoch in range(300):
     for i, data in enumerate(dataloader, 0):
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -233,8 +198,8 @@ for epoch in range(200):
         batch_size = real_cpu.size(0)
         #if opt.cuda:
         #    real_cpu = real_cpu.cuda()
-        y = torch.LongTensor(batch_size, 1).copy_(labels)
-        y_onehot = torch.zeros(batch_size, 200)
+        y = torch.LongTensor(batch_size, 1).copy_(labels.view(-1, 1))
+        y_onehot = torch.zeros(batch_size, 10)
         y_onehot.scatter_(1, y, 1)
         y_onehot_v = y_onehot.view(batch_size, -1, 1, 1)
         #print(y_onehot_v.size())
