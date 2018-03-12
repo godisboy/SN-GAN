@@ -14,6 +14,7 @@ from models.snres_generator import SNResGenerator
 from models.snres_discriminator import SNResDiscriminator
 
 parser = argparse.ArgumentParser(description='train SNDCGAN model')
+parser.add_argument('--dataPath', required=True, help='path to dataset')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--gpu_ids', default=[0,1,2,3], help='gpu ids: e.g. 0,1,2, 0,2.')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
@@ -21,10 +22,11 @@ parser.add_argument('--n_dis', type=int, default=1, help='discriminator critic i
 parser.add_argument('--nz', type=int, default=128, help='dimention of lantent noise')
 parser.add_argument('--batchsize', type=int, default=32, help='training batch size')
 
+
 opt = parser.parse_args()
 print(opt)
 
-dataset = datasets.ImageFolder(root='/home/chao/zero/datasets/cfp-dataset/Data/Images',
+dataset = datasets.ImageFolder(root=opt.dataPath,
                            transform=transforms.Compose([
                                transforms.Scale(64),
                                transforms.CenterCrop(64),
