@@ -34,6 +34,10 @@ python train-res.py --cuda --dataPath /Path/to/yourdataset/
 
 ![Generated samples](log/fake_samples_epoch_113.png)
 
+* Generated samples with Standard Generator and ResDiscriminator
+
+![Generated samples](log/StGen_ResDis_fake_samples_epoch_130.png)
+
 **Note**:
 The ResBlock of Res-Generator is different from what implemented in original paper.
 This repo use `UpsamplingBilinear` instead of `Uppooling` for Upsampling operation.
