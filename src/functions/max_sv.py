@@ -18,5 +18,5 @@ def max_singular_value(W, u=None, Ip=1):
     for _ in range(Ip):
         _v = _l2normalize(torch.matmul(_u.data, W.data), eps=1e-12)
         _u = _l2normalize(torch.matmul(_v, torch.transpose(W.data, 0, 1)), eps=1e-12)
-    sigma = torch.sum(F.linear(_u, torch.transpose(W, 0, 1)) * _v)
+    sigma = torch.sum(F.linear(_u, torch.transpose(W.data, 0, 1)) * _v)
     return sigma, _u
