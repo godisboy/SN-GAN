@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules import conv
 from torch.nn.modules.utils import _pair
-from src.functions.max_sv import max_singular_value
+from ..functions.max_sv import max_singular_value
 
 class SNConv2d(conv._ConvNd):
 
@@ -106,13 +106,13 @@ class SNConv2d(conv._ConvNd):
         super(SNConv2d, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation,
             False, _pair(0), groups, bias)
-        self.u = nn.Parameter(torch.Tensor(1, out_channels).normal_())
+        self.register_buffer('u', torch.Tensor(1, out_channels).normal_())
 
     @property
     def W_(self):
         w_mat = self.weight.view(self.weight.size(0), -1)
         sigma, _u = max_singular_value(w_mat, self.u)
-        self.u.data = _u
+        self.u.copy_(_u)
         return self.weight / sigma
 
     def forward(self, input):

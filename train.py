@@ -23,22 +23,22 @@ parser.add_argument('--batchsize', type=int, default=64, help='training batch si
 opt = parser.parse_args()
 print(opt)
 
-dataset = datasets.ImageFolder(root='/home/chao/zero/datasets/cfp-dataset/Data/Images',
-                           transform=transforms.Compose([
-                               transforms.Scale(32),
-                               transforms.CenterCrop(32),
-                               transforms.ToTensor(),
-                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                           ])
-                                      )
-'''
+# dataset = datasets.ImageFolder(root='/home/chao/zero/datasets/cfp-dataset/Data/Images',
+#                            transform=transforms.Compose([
+#                                transforms.Scale(32),
+#                                transforms.CenterCrop(32),
+#                                transforms.ToTensor(),
+#                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+#                            ])
+#                                       )
+
 dataset = datasets.CIFAR10(root='dataset', download=True,
                            transform=transforms.Compose([
                                transforms.Scale(32),
                                transforms.ToTensor(),
                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ]))
-'''
+
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchsize,
                                          shuffle=True, num_workers=int(2))
 
@@ -89,8 +89,8 @@ if opt.cuda:
     input, label = input.cuda(), label.cuda()
     noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
 
-optimizerG = optim.Adam(G.parameters(), lr=0.0002, betas=(0.5, 0.999))
-optimizerSND = optim.Adam(SND.parameters(), lr=0.0002, betas=(0.5, 0.999))
+optimizerG = optim.Adam(G.parameters(), lr=0.0002, betas=(0, 0.9))
+optimizerSND = optim.Adam(SND.parameters(), lr=0.0002, betas=(0, 0.9))
 
 for epoch in range(200):
     for i, data in enumerate(dataloader, 0):
@@ -116,7 +116,7 @@ for epoch in range(200):
 
         D_x = output.data.mean()
         # train with fake
-        noise.resize_(batch_size, nz).normal_(0, 1)
+        noise.resize_(batch_size, noise.size(1), noise.size(2), noise.size(3)).normal_(0, 1)
         noisev = Variable(noise)
         fake = G(noisev)
         labelv = Variable(label.fill_(fake_label))
