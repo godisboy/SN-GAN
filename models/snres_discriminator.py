@@ -14,7 +14,7 @@ class ResBlock(nn.Module):
         self.residual_connect = self.make_residual_connect(in_channels, out_channels)
     def make_res_block(self, in_channels, out_channels, hidden_channels, use_BN, downsample):
         model = []
-        if not use_BN:
+        if use_BN:
             model += [nn.BatchNorm2d(in_channels)]
 
         model += [nn.ReLU()]
