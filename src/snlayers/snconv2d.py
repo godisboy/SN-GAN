@@ -105,7 +105,7 @@ class SNConv2d(conv._ConvNd):
         dilation = _pair(dilation)
         super(SNConv2d, self).__init__(
             in_channels, out_channels, kernel_size, stride, padding, dilation,
-            False, _pair(0), groups, bias)
+            False, _pair(0), groups, bias, padding_mode = 'zeros')
         self.register_buffer('u', torch.Tensor(1, out_channels).normal_())
 
     @property
